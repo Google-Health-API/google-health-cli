@@ -474,7 +474,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 	blank()
 	if !setupNonInteractiveAuth {
 		fmt.Fprintf(os.Stderr, "  %sTry it out:%s\n", dim, reset)
-		fmt.Fprintf(os.Stderr, "    %s$ ghealth data steps list --from 2026-03-28%s\n", cyan, reset)
+		fmt.Fprintf(os.Stderr, "    %s$ ghealth data steps daily-rollup --from 2026-03-22 --to 2026-03-29%s\n", cyan, reset)
 		fmt.Fprintf(os.Stderr, "    %s$ ghealth data sleep list --from 2026-03-22%s\n", cyan, reset)
 		fmt.Fprintf(os.Stderr, "    %s$ ghealth schema types%s\n", cyan, reset)
 		blank()
