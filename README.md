@@ -167,7 +167,7 @@ ghealth setup --instructions
 | `sedentary-period` | sedentary intervals | list, daily-rollup, reconcile |
 | `swim-lengths-data` | `swimStrokeType`, `strokeCount` *(use daily-rollup for `strokeCountSum`)* | list, rollup, daily-rollup, reconcile |
 | `hydration-log` | `milliliters` consumed | list, get, daily-rollup, reconcile |
-| `nutrition-log` | nutrients, `energy`, mealType, food | list, get, rollup, daily-rollup, reconcile |
+| `nutrition-log` | nutrients, `energy`, mealType, food | list, get, create, rollup, daily-rollup, reconcile |
 | `food` | nutrient profiles, servings *(catalog — no time filter)* | list, get |
 | `food-measurement-unit` | `displayName` *(catalog — no time filter)* | list, get |
 | `blood-glucose` | mg/dL, mealType, measurementTiming | list, get, rollup, daily-rollup, reconcile |
