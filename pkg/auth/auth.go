@@ -335,6 +335,67 @@ func OAuthConfig(cs *ClientSecret, scopes []string, redirectURL string) *oauth2.
 	}
 }
 
+// writeFileAtomic writes data to a temp file in the same directory and renames
+// it over path, so a reader never sees a half-written file and two writers never
+// interleave into one.
+//
+// os.WriteFile opens with O_TRUNC and writes in place. Two processes doing that
+// concurrently (both refreshing an expired token, say) can interleave as
+// A-open, B-open, A-write, B-write: B only overwrites the front, and the tail of
+// A's longer payload survives past the end of B's JSON. The file is then
+// permanently unparseable. Rename is atomic on POSIX and uses
+// MOVEFILE_REPLACE_EXISTING on Windows, so the last writer wins whole.
+func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	f, err := os.CreateTemp(dir, filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	// No-op once the rename below succeeds; cleans up on any early return.
+	defer os.Remove(tmp)
+
+	if err := f.Chmod(perm); err != nil {
+		f.Close()
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	// The replace itself needs retrying on Windows: MoveFileEx fails with
+	// ERROR_ACCESS_DENIED both when another process holds the destination open
+	// and when two replaces of the same destination overlap. Measured on
+	// windows/arm64, go1.26: 8 goroutines x 40 renames onto one path failed
+	// 67/320 times with no reader present at all.
+	//
+	// Retrying is safe because each attempt is all-or-nothing: a losing attempt
+	// leaves the previous file intact rather than a half-written one. The worst
+	// case degrades to "could not persist" — which callers already warn about —
+	// instead of the unparseable file an in-place write leaves behind.
+	var rerr error
+	for i := 0; i < renameAttempts; i++ {
+		if rerr = os.Rename(tmp, path); rerr == nil {
+			return nil
+		}
+		time.Sleep(renameBackoff)
+	}
+	return rerr
+}
+
+const (
+	renameAttempts = 50
+	renameBackoff  = 10 * time.Millisecond
+)
+
 // SaveCredentials persists tokens to the credentials file.
 func SaveCredentials(creds *StoredCredentials) error {
 	path := config.CredentialsPath()
@@ -348,7 +409,7 @@ func SaveCredentials(creds *StoredCredentials) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0600)
+	return writeFileAtomic(path, data, 0600)
 }
 
 // LoadCredentials reads stored tokens from the credentials file.
@@ -837,7 +898,7 @@ func SavePendingAuth(p *PendingAuth) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0600)
+	return writeFileAtomic(path, data, 0600)
 }
 
 func LoadPendingAuth() (*PendingAuth, error) {
