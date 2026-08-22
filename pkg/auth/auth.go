@@ -197,8 +197,15 @@ func ScopePreset(name string) ([]string, error) {
 		}
 		return out, nil
 	case "all":
+		// cloud-platform is a webhook-admin scope that the data-plane
+		// endpoints reject ("Request contains disallowed OAuth scope(s)"),
+		// so "all" covers only health-data scopes. Webhook credentials need
+		// their own login with --scopes cloud-platform (see 'ghealth webhooks').
 		out := make([]string, 0, len(AllScopes))
 		for _, s := range AllScopes {
+			if s.Suffix == "cloud-platform" {
+				continue
+			}
 			out = append(out, s.Suffix)
 		}
 		return out, nil
