@@ -78,7 +78,10 @@ Non-interactive (for headless agents / hosts without a browser):
 
 Scopes can be specified either with --scopes (a comma-separated list of scope
 suffixes — see 'ghealth schema scopes') or with --scopes-preset (readonly | all |
-category names like 'sleep,activity_and_fitness').`,
+category names like 'sleep,activity_and_fitness'). The 'all' preset covers only
+health-data scopes: cloud-platform is excluded because data-plane endpoints
+reject tokens that carry it. Webhooks need a separate login, ideally in a
+dedicated config dir — see 'ghealth webhooks --help'.`,
 	RunE: runAuthLogin,
 }
 
@@ -147,7 +150,7 @@ func init() {
 	authLoginCmd.Flags().BoolVar(&authLoginNonInteractive, "non-interactive", false, "Print an auth URL as JSON and save pending state; complete with --complete <code>")
 	authLoginCmd.Flags().StringVar(&authLoginComplete, "complete", "", "Exchange the given authorization code (paired with a prior --non-interactive call)")
 	authLoginCmd.Flags().StringVar(&authLoginScopes, "scopes", "", "Comma-separated scope suffixes (see 'ghealth schema scopes')")
-	authLoginCmd.Flags().StringVar(&authLoginScopesPreset, "scopes-preset", "", "Scope preset: readonly | all | comma-separated category names")
+	authLoginCmd.Flags().StringVar(&authLoginScopesPreset, "scopes-preset", "", "Scope preset: readonly | all (health-data scopes only) | comma-separated category names")
 
 	authImportCmd.Flags().StringVar(&authImportFile, "file", "", "Read credentials JSON from this file instead of stdin")
 
