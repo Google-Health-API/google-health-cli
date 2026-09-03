@@ -457,7 +457,9 @@ func init() {
 		ID: "hydration-log", FilterName: "hydration_log", TimeField: interval,
 		Category:    "nutrition",
 		Description: "Hydration log entries",
-		Operations:  []string{"list", "get", "daily-rollup", "reconcile"},
+		// create/delete only, same as nutrition-log: PATCH returns 500 INTERNAL.
+		Operations: []string{"list", "get", "create", "delete", "daily-rollup", "reconcile"},
+		Writable:   true,
 	})
 
 	// --- Rollup-only types (no list) ---
@@ -509,7 +511,11 @@ func init() {
 		ID: "nutrition-log", FilterName: "nutrition_log", TimeField: interval,
 		Category:    "nutrition",
 		Description: "Logged food/nutrition entries with nutrient and energy breakdown",
-		Operations:  []string{"list", "get", "rollup", "daily-rollup", "reconcile"},
+		// create/delete only: PATCH on an existing nutrition-log point returns
+		// 500 INTERNAL (with or without a field mask), so "update" is omitted
+		// deliberately — edit by delete + create.
+		Operations: []string{"list", "get", "create", "delete", "rollup", "daily-rollup", "reconcile"},
+		Writable:   true,
 	})
 	register(&DataType{
 		ID: "food", FilterName: "food", TimeField: TimeFieldNone,
