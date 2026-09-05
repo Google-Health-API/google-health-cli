@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"ghealth/pkg/config"
+	"github.com/Google-Health-API/google-health-cli/pkg/config"
 )
 
 const (

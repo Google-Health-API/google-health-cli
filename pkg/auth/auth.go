@@ -33,7 +33,7 @@ import (
 	"sync"
 	"time"
 
-	"ghealth/pkg/config"
+	"github.com/Google-Health-API/google-health-cli/pkg/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

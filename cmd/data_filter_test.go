@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 func TestParseEndDate(t *testing.T) {

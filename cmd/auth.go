@@ -24,9 +24,9 @@ import (
 	"strings"
 	"time"
 
-	"ghealth/pkg/auth"
-	"ghealth/pkg/client"
-	"ghealth/pkg/config"
+	"github.com/Google-Health-API/google-health-cli/pkg/auth"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 )

@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"ghealth/pkg/client"
-	"ghealth/pkg/config"
 	"github.com/BurntSushi/toml"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/config"
 	"github.com/spf13/cobra"
 )
 

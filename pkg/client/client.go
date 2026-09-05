@@ -27,8 +27,8 @@ import (
 	"strings"
 	"time"
 
-	"ghealth/internal/version"
-	"ghealth/pkg/auth"
+	"github.com/Google-Health-API/google-health-cli/internal/version"
+	"github.com/Google-Health-API/google-health-cli/pkg/auth"
 )
 
 const MaxRetries = 3
@@ -229,7 +229,7 @@ func (c *Client) doOnce(req *Request) (*Response, error) {
 		return nil, &AuthError{Err: err}
 	}
 	httpReq.Header.Set("Authorization", "Bearer "+token)
-	httpReq.Header.Set("x-goog-api-client", "ghealth/"+version.Version)
+	httpReq.Header.Set("x-goog-api-client", "github.com/Google-Health-API/google-health-cli/"+version.Version)
 
 	if req.ContentType != "" {
 		httpReq.Header.Set("Content-Type", req.ContentType)
@@ -272,7 +272,7 @@ func (c *Client) DryRun(req *Request) (json.RawMessage, error) {
 		"url":    fullURL,
 		"headers": map[string]string{
 			"Authorization":     "Bearer [REDACTED]",
-			"x-goog-api-client": "ghealth/" + version.Version,
+			"x-goog-api-client": "github.com/Google-Health-API/google-health-cli/" + version.Version,
 			"Content-Type":      "application/json",
 		},
 	}

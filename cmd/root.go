@@ -15,10 +15,10 @@
 package cmd
 
 import (
-	"ghealth/internal/version"
-	"ghealth/pkg/auth"
-	"ghealth/pkg/client"
-	configPkg "ghealth/pkg/config"
+	"github.com/Google-Health-API/google-health-cli/internal/version"
+	"github.com/Google-Health-API/google-health-cli/pkg/auth"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	configPkg "github.com/Google-Health-API/google-health-cli/pkg/config"
 	"github.com/spf13/cobra"
 )
 

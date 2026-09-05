@@ -24,9 +24,9 @@ import (
 	"strings"
 	"time"
 
-	"ghealth/pkg/client"
-	"ghealth/pkg/output"
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/output"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
 

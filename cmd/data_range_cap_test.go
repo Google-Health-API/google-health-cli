@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"ghealth/pkg/client"
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 func TestRollupRangeCapDays_Registry(t *testing.T) {

@@ -17,7 +17,7 @@ package main
 import (
 	"os"
 
-	"ghealth/cmd"
+	"github.com/Google-Health-API/google-health-cli/cmd"
 )
 
 func main() {
