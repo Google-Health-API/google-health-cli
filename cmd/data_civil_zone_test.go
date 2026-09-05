@@ -17,7 +17,7 @@ package cmd
 import (
 	"testing"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 // Civil filter fields (interval civil_start_time, sleep civil_end_time) do

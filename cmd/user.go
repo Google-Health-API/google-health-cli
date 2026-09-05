@@ -17,8 +17,8 @@ package cmd
 import (
 	"encoding/json"
 
-	"ghealth/pkg/client"
-	"ghealth/pkg/output"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/output"
 	"github.com/spf13/cobra"
 )
 

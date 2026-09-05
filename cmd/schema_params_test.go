@@ -17,7 +17,7 @@ package cmd
 import (
 	"testing"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 // schema type <name> must describe the API's real parameters, never the

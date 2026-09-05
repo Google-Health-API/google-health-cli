@@ -1,4 +1,4 @@
-module ghealth
+module github.com/Google-Health-API/google-health-cli
 
 go 1.23.0
 

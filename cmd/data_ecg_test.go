@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 // buildFilter for ECG must produce a physical start_time lower-bound filter and

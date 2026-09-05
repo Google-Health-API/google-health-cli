@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 func writeTimezoneConfig(t *testing.T, dir, tz string) {

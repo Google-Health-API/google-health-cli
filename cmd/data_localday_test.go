@@ -17,7 +17,7 @@ package cmd
 import (
 	"testing"
 
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 )
 
 // At a +02:00 host, a bare date on a physical-time (sample) field must anchor at

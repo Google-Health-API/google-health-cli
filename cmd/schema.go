@@ -20,10 +20,10 @@ import (
 	"sort"
 	"strings"
 
-	"ghealth/pkg/auth"
-	"ghealth/pkg/client"
-	"ghealth/pkg/schema"
-	"ghealth/pkg/types"
+	"github.com/Google-Health-API/google-health-cli/pkg/auth"
+	"github.com/Google-Health-API/google-health-cli/pkg/client"
+	"github.com/Google-Health-API/google-health-cli/pkg/schema"
+	"github.com/Google-Health-API/google-health-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
 
