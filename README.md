@@ -1,9 +1,14 @@
-# ghealth
+# Google Health CLI (`ghealth`)
 
-CLI for the [Google Health API v4](https://developers.google.com/health) — built for AI agents and developers.
+[![Official Google project](https://img.shields.io/badge/Official-Google%20Health%20API-4285F4)](https://developers.google.com/health)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.md)
+
+The official command-line tool for the [Google Health API](https://developers.google.com/health), maintained by Google.
+
+> **Verify it's official:** this repository is linked from the Google Health API documentation at [developers.google.com/health](https://developers.google.com/health) and published by the `Google-Health-API` GitHub organization.
 
 - **40 verified data types**: steps, heart rate, exercise, sleep, weight, SpO2, HRV, ECG, blood glucose, nutrition, and more
-- **Agent-first**: simplified JSON output, deterministic exit codes, `--dry-run`, `--raw`
+- **Scriptable**: simplified JSON output, deterministic exit codes, `--dry-run`, `--raw`
 - **Single binary**: `go build -o ghealth .`
 
 ## Quick Start
@@ -408,7 +413,8 @@ Errors are always JSON on stderr and may include a `next_steps: []string` array 
 | `GHEALTH_CONFIG_DIR` | Config directory override |
 | `GHEALTH_PROFILE` | Active profile name |
 | `GHEALTH_FORMAT` | Default output format (json/table/csv) |
-| `GHEALTH_BASE_URL` | Override the API base URL |
+| `GHEALTH_BASE_URL` | Override the API base URL (testing only). Restricted to `https://*.googleapis.com` and loopback hosts; other hosts are ignored with a warning unless `GHEALTH_ALLOW_CUSTOM_BASE_URL=1`, because your OAuth token is sent to this host. |
+| `GHEALTH_ALLOW_CUSTOM_BASE_URL` | Set to `1` to allow a non-Google `GHEALTH_BASE_URL` (not recommended) |
 
 
 ## License
