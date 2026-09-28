@@ -37,11 +37,56 @@ var BaseURL = resolveBaseURL()
 
 const defaultBaseURL = "https://health.googleapis.com/v4"
 
+// allowCustomBaseURLEnv must be set to "1" to permit a GHEALTH_BASE_URL that
+// is neither a Google API host nor a loopback address.
+const allowCustomBaseURLEnv = "GHEALTH_ALLOW_CUSTOM_BASE_URL"
+
+// resolveBaseURL returns the API base URL. GHEALTH_BASE_URL may override it,
+// but because every request carries the user's OAuth access token, overrides
+// are restricted to https://*.googleapis.com and loopback hosts (for local
+// testing) unless GHEALTH_ALLOW_CUSTOM_BASE_URL=1 is also set. A rejected
+// override falls back to the default and prints a warning to stderr.
 func resolveBaseURL() string {
-	if v := os.Getenv("GHEALTH_BASE_URL"); v != "" {
-		return v
+	v := os.Getenv("GHEALTH_BASE_URL")
+	if v == "" {
+		return defaultBaseURL
 	}
-	return defaultBaseURL
+	if err := validateBaseURL(v, os.Getenv(allowCustomBaseURLEnv) == "1"); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: ignoring GHEALTH_BASE_URL: %v; using %s\n", err, defaultBaseURL)
+		return defaultBaseURL
+	}
+	if !isTrustedHost(v) {
+		fmt.Fprintf(os.Stderr, "warning: GHEALTH_BASE_URL points to non-Google host %q; your OAuth access token will be sent there\n", v)
+	}
+	return v
+}
+
+// validateBaseURL reports whether raw is an acceptable API base URL.
+func validateBaseURL(raw string, allowCustom bool) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return fmt.Errorf("%q is not an absolute URL", raw)
+	}
+	if u.Scheme != "https" && u.Scheme != "http" {
+		return fmt.Errorf("unsupported scheme %q", u.Scheme)
+	}
+	if isTrustedHost(raw) || allowCustom {
+		return nil
+	}
+	return fmt.Errorf("host %q is not *.googleapis.com or loopback (set %s=1 to allow)", u.Hostname(), allowCustomBaseURLEnv)
+}
+
+// isTrustedHost is true for https://*.googleapis.com and for loopback hosts.
+func isTrustedHost(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if u.Scheme == "https" && (host == "googleapis.com" || strings.HasSuffix(host, ".googleapis.com")) {
+		return true
+	}
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 // sleep is swappable so tests can run the retry loop without real backoff.

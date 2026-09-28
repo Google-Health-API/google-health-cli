@@ -2,7 +2,7 @@
 
 ## What is this
 
-ghealth is a CLI wrapping the Google Health API v4. Primary users are AI agents (OpenClaw, Claude Code, Codex, coding agents) that need structured health data access — steps, heart rate, sleep, exercise, weight, SpO2, HRV. Human developers use it too.
+ghealth is Google's command-line tool for the Google Health API v4 (https://developers.google.com/health). It is used by developers and by AI coding agents that need structured health data access — steps, heart rate, sleep, exercise, weight, SpO2, HRV.
 
 The CLI handles OAuth, pagination, response simplification, and contextual hints so agents can focus on the health question, not API plumbing.
 
