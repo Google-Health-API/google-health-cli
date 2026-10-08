@@ -382,6 +382,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 			result["validated"] = false
 			result["note"] = "GHEALTH_ACCESS_TOKEN is set; pass --validate to verify it against Google's tokeninfo endpoint"
 		}
+		addAPIVersionInfo(result)
 		data, _ := json.MarshalIndent(result, "", "  ")
 		fmt.Fprintln(os.Stdout, string(data))
 		return nil
@@ -418,6 +419,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 			result["validated"] = false
 			result["note"] = "Credentials file is configured; pass --validate to verify the token"
 		}
+		addAPIVersionInfo(result)
 		data, _ := json.MarshalIndent(result, "", "  ")
 		fmt.Fprintln(os.Stdout, string(data))
 		return nil
@@ -457,6 +459,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	addAPIVersionInfo(result)
 	data, _ := json.MarshalIndent(result, "", "  ")
 	fmt.Fprintln(os.Stdout, string(data))
 	return nil

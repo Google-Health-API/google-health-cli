@@ -53,3 +53,50 @@ func TestGetFormat_DefaultsToJSON(t *testing.T) {
 		t.Errorf("GetFormat(\"\") = %q, want json", got)
 	}
 }
+
+// ResolveAPIVersion order: flag > GHEALTH_API_VERSION > profile api_version >
+// "v4", mirroring GetFormat.
+func TestResolveAPIVersion_Order(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GHEALTH_CONFIG_DIR", dir)
+	os.Unsetenv("GHEALTH_API_VERSION")
+
+	if v, src := ResolveAPIVersion(""); v != "v4" || src != APIVersionSourceDefault {
+		t.Errorf("default = (%q, %q), want (v4, default)", v, src)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName),
+		[]byte("[default]\napi_version = \"v4beta\"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if v, src := ResolveAPIVersion(""); v != "v4beta" || src != APIVersionSourceProfile {
+		t.Errorf("profile = (%q, %q), want (v4beta, profile)", v, src)
+	}
+
+	t.Setenv("GHEALTH_API_VERSION", "v4")
+	if v, src := ResolveAPIVersion(""); v != "v4" || src != APIVersionSourceEnv {
+		t.Errorf("env = (%q, %q), want (v4, env)", v, src)
+	}
+
+	if v, src := ResolveAPIVersion("V4Beta"); v != "v4beta" || src != APIVersionSourceFlag {
+		t.Errorf("flag = (%q, %q), want (v4beta, flag)", v, src)
+	}
+}
+
+// Each API version gets its own discovery cache file so a cached v4 document
+// is never served for v4beta (or vice versa).
+func TestDiscoveryCachePath_PerVersion(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GHEALTH_CONFIG_DIR", dir)
+	v4 := DiscoveryCachePath("v4")
+	beta := DiscoveryCachePath("v4beta")
+	if v4 == beta {
+		t.Fatalf("v4 and v4beta share a cache path: %s", v4)
+	}
+	if want := filepath.Join(dir, "discovery-cache", "health-v4beta.json"); beta != want {
+		t.Errorf("v4beta cache = %q, want %q", beta, want)
+	}
+	if DiscoveryCachePath("") != v4 {
+		t.Errorf("empty version must default to the v4 cache path")
+	}
+}

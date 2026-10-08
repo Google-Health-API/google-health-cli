@@ -1,11 +1,11 @@
 ---
 name: ghealth
-description: Query Google Health API v4 — steps, heart rate, exercise, sleep, weight, SpO2, HRV, ECG, blood glucose, nutrition, and 40 total data types
+description: Query the Google Health API (v4, opt-in v4beta) — steps, heart rate, exercise, sleep, weight, SpO2, HRV, ECG, blood glucose, nutrition, and 40 total data types
 ---
 
 # ghealth
 
-CLI for the Google Health API v4. 40 verified data types.
+CLI for the Google Health API (v4 by default). 40 verified data types.
 
 **Prerequisites:** See `../ghealth-shared/SKILL.md` for auth, setup, global flags.
 
@@ -161,6 +161,7 @@ Write operations use `create`, `update --id <id> [--update-mask fields]`, `delet
 - **Missing days are NOT zeros** (`altitude`, `distance`, `floors`, `steps`, `total-calories`): a date absent from rollup output means the device wasn't worn / didn't sync — NOT zero. `countSum: "0"` is a true zero (worn, no activity). Never coalesce missing buckets to 0 or average over absent days as zeros — that silently deflates weekly/monthly stats
 - String vs number values follow protobuf JSON encoding: `int64` fields (`beatsPerMinute`, `countSum`, `minutesAsleep`) are **strings**; `int32`/`double` fields (`weightGrams`, `caloriesKcal`, `percentage`) are **numbers**
 - `--filter` raw syntax: only `>=` and `<` comparators. Civil time fields (no `Z`): interval types use `{type}.interval.civil_start_time`, sleep uses `sleep.interval.civil_end_time` (only end-time is filterable), daily types use `{type}.date`. Physical time fields (with `Z`): sample types use `{type}.sample_time.physical_time`
+- **Use v4 by default.** Reach for `--api-version v4beta` only to try a feature marked `[beta]` (in `--help`, or `"channel": "v4beta"` in `ghealth schema types`). Beta commands on v4 exit 3 with a hint; JSON responses carry `_api_version` showing which channel answered
 - Write operations are **asynchronous** — the API returns an Operation object, not the created/updated data. Use `list` to verify persistence
 - Body fat `delete` returns HTTP 500 — this is an API bug
 - Height `update` returns HTTP 400 ("updateMask not recognized") — API bug; use `create` + `delete` as a workaround

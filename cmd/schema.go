@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"ghealth/pkg/auth"
+	"ghealth/pkg/channel"
 	"ghealth/pkg/client"
 	"ghealth/pkg/schema"
 	"ghealth/pkg/types"
@@ -67,31 +68,36 @@ func init() {
 
 func runSchemaTypes(cmd *cobra.Command, args []string) error {
 	source := "registry"
-	doc, src, err := schema.FetchDiscovery()
+	doc, src, err := schema.FetchDiscovery(activeAPIVersion)
 	if err == nil {
 		source = src
 	}
 	_ = doc // types command uses registry, not discovery
 
 	// Build type list from registry (always authoritative for type metadata).
+	// Pre-GA types are listed on every channel (so agents can discover them)
+	// with "available" telling whether the active --api-version can call them.
 	ids := types.IDs()
 	typeList := make([]map[string]interface{}, 0, len(ids))
 	for _, id := range ids {
 		dt := types.Get(id)
-		typeList = append(typeList, map[string]interface{}{
+		entry := map[string]interface{}{
 			"id":          dt.ID,
 			"category":    dt.Category,
 			"description": dt.Description,
 			"writable":    dt.Writable,
 			"rollupOnly":  dt.RollupOnly,
 			"operations":  dt.Operations,
-		})
+		}
+		addChannelInfo(entry, dt)
+		typeList = append(typeList, entry)
 	}
 
 	result := map[string]interface{}{
-		"source":    source,
-		"count":     len(typeList),
-		"dataTypes": typeList,
+		"source":     source,
+		"apiVersion": activeAPIVersion,
+		"count":      len(typeList),
+		"dataTypes":  typeList,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -100,6 +106,17 @@ func runSchemaTypes(cmd *cobra.Command, args []string) error {
 	}
 
 	return printOutput(json.RawMessage(data))
+}
+
+// addChannelInfo annotates a schema entry with the type's release channel
+// and whether it is callable on the active API version. GA types get
+// channel "v4"; per-operation overrides are listed under operationChannels.
+func addChannelInfo(entry map[string]interface{}, dt *types.DataType) {
+	entry["channel"] = dt.OperationChannel("")
+	entry["available"] = channel.Allows(activeAPIVersion, dt.OperationChannel(""))
+	if len(dt.OpChannels) > 0 {
+		entry["operationChannels"] = dt.OpChannels
+	}
 }
 
 func runSchemaType(cmd *cobra.Command, args []string) error {
@@ -115,7 +132,13 @@ func runSchemaType(cmd *cobra.Command, args []string) error {
 	source := "registry"
 	var discoveryDoc json.RawMessage
 
-	doc, src, err := schema.FetchDiscovery()
+	// A pre-GA type is absent from the GA discovery document, so describe it
+	// from its own channel's document; otherwise use the active channel's.
+	docVersion := activeAPIVersion
+	if ch := dt.OperationChannel(""); !channel.Allows(activeAPIVersion, ch) {
+		docVersion = ch
+	}
+	doc, src, err := schema.FetchDiscovery(docVersion)
 	if err == nil {
 		source = src
 		discoveryDoc = doc
@@ -126,6 +149,7 @@ func runSchemaType(cmd *cobra.Command, args []string) error {
 
 	result := map[string]interface{}{
 		"source":      source,
+		"apiVersion":  docVersion,
 		"id":          dt.ID,
 		"filterName":  dt.FilterName,
 		"category":    dt.Category,
@@ -136,6 +160,7 @@ func runSchemaType(cmd *cobra.Command, args []string) error {
 		"rollupOnly":  dt.RollupOnly,
 		"parameters":  buildOperationParameters(dt),
 	}
+	addChannelInfo(result, dt)
 	if len(fields) > 0 {
 		result["fields"] = fields
 	}
@@ -258,35 +283,37 @@ func runSchemaScopes(cmd *cobra.Command, args []string) error {
 
 func runSchemaEndpoints(cmd *cobra.Command, args []string) error {
 	var endpoints []map[string]interface{}
+	// Paths are rooted at the active API version (e.g. /v4 or /v4beta).
+	v := "/" + activeAPIVersion
 
 	// User endpoints (static).
 	endpoints = append(endpoints,
-		map[string]interface{}{"method": "GET", "path": "/v4/users/me/identity", "description": "Get user identity"},
-		map[string]interface{}{"method": "GET", "path": "/v4/users/me/profile", "description": "Get user profile"},
-		map[string]interface{}{"method": "PATCH", "path": "/v4/users/me/profile", "description": "Update user profile"},
-		map[string]interface{}{"method": "GET", "path": "/v4/users/me/settings", "description": "Get user settings"},
-		map[string]interface{}{"method": "PATCH", "path": "/v4/users/me/settings", "description": "Update user settings"},
+		map[string]interface{}{"method": "GET", "path": v + "/users/me/identity", "description": "Get user identity"},
+		map[string]interface{}{"method": "GET", "path": v + "/users/me/profile", "description": "Get user profile"},
+		map[string]interface{}{"method": "PATCH", "path": v + "/users/me/profile", "description": "Update user profile"},
+		map[string]interface{}{"method": "GET", "path": v + "/users/me/settings", "description": "Get user settings"},
+		map[string]interface{}{"method": "PATCH", "path": v + "/users/me/settings", "description": "Update user settings"},
 	)
 
 	// Webhook endpoints — project-level subscriber/subscription model
 	// (discovery revision 20260528). These require the cloud-platform scope
 	// and a configured project ID; see 'ghealth webhooks --help'.
 	endpoints = append(endpoints,
-		map[string]interface{}{"method": "GET", "path": "/v4/projects/{project}/subscribers", "description": "List webhook subscribers"},
-		map[string]interface{}{"method": "POST", "path": "/v4/projects/{project}/subscribers", "description": "Create webhook subscriber"},
-		map[string]interface{}{"method": "PATCH", "path": "/v4/projects/{project}/subscribers/{subscriber}", "description": "Update webhook subscriber"},
-		map[string]interface{}{"method": "DELETE", "path": "/v4/projects/{project}/subscribers/{subscriber}", "description": "Delete webhook subscriber"},
-		map[string]interface{}{"method": "GET", "path": "/v4/projects/{project}/subscribers/{subscriber}/subscriptions", "description": "List webhook subscriptions"},
-		map[string]interface{}{"method": "POST", "path": "/v4/projects/{project}/subscribers/{subscriber}/subscriptions", "description": "Create webhook subscription"},
-		map[string]interface{}{"method": "PATCH", "path": "/v4/projects/{project}/subscribers/{subscriber}/subscriptions/{subscription}", "description": "Update webhook subscription"},
-		map[string]interface{}{"method": "DELETE", "path": "/v4/projects/{project}/subscribers/{subscriber}/subscriptions/{subscription}", "description": "Delete webhook subscription"},
+		map[string]interface{}{"method": "GET", "path": v + "/projects/{project}/subscribers", "description": "List webhook subscribers"},
+		map[string]interface{}{"method": "POST", "path": v + "/projects/{project}/subscribers", "description": "Create webhook subscriber"},
+		map[string]interface{}{"method": "PATCH", "path": v + "/projects/{project}/subscribers/{subscriber}", "description": "Update webhook subscriber"},
+		map[string]interface{}{"method": "DELETE", "path": v + "/projects/{project}/subscribers/{subscriber}", "description": "Delete webhook subscriber"},
+		map[string]interface{}{"method": "GET", "path": v + "/projects/{project}/subscribers/{subscriber}/subscriptions", "description": "List webhook subscriptions"},
+		map[string]interface{}{"method": "POST", "path": v + "/projects/{project}/subscribers/{subscriber}/subscriptions", "description": "Create webhook subscription"},
+		map[string]interface{}{"method": "PATCH", "path": v + "/projects/{project}/subscribers/{subscriber}/subscriptions/{subscription}", "description": "Update webhook subscription"},
+		map[string]interface{}{"method": "DELETE", "path": v + "/projects/{project}/subscribers/{subscriber}/subscriptions/{subscription}", "description": "Delete webhook subscription"},
 	)
 
 	// Data type endpoints (derived from registry).
 	ids := types.IDs()
 	for _, id := range ids {
 		dt := types.Get(id)
-		basePath := fmt.Sprintf("/v4/users/me/dataTypes/%s/dataPoints", dt.ID)
+		basePath := fmt.Sprintf("%s/users/me/dataTypes/%s/dataPoints", v, dt.ID)
 
 		for _, op := range dt.Operations {
 			var method, path, desc string
@@ -310,12 +337,18 @@ func runSchemaEndpoints(cmd *cobra.Command, args []string) error {
 			default:
 				continue
 			}
-			endpoints = append(endpoints, map[string]interface{}{
+			ep := map[string]interface{}{
 				"method":      method,
 				"path":        path,
 				"description": desc,
 				"dataType":    id,
-			})
+			}
+			// Pre-GA operations stay listed, tagged with the channel they need.
+			if ch := dt.OperationChannel(op); channel.IsPreview(ch) {
+				ep["channel"] = ch
+				ep["available"] = channel.Allows(activeAPIVersion, ch)
+			}
+			endpoints = append(endpoints, ep)
 		}
 	}
 

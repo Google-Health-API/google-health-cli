@@ -29,19 +29,36 @@ import (
 
 	"ghealth/internal/version"
 	"ghealth/pkg/auth"
+	"ghealth/pkg/channel"
 )
 
 const MaxRetries = 3
 
-var BaseURL = resolveBaseURL()
+// DefaultHost is the Google Health API host. The API version (channel) is
+// appended as the first path segment, e.g. https://health.googleapis.com/v4.
+const DefaultHost = "https://health.googleapis.com"
 
-const defaultBaseURL = "https://health.googleapis.com/v4"
+// BaseURL is the prefix every request path is appended to. It starts at the
+// default-channel URL (honoring GHEALTH_BASE_URL) and is re-resolved by the
+// root command once flags are parsed, via SetAPIVersion.
+var BaseURL = ResolveBaseURL(channel.Default)
 
-func resolveBaseURL() string {
+// ResolveBaseURL returns the base URL for an API version. GHEALTH_BASE_URL,
+// when set, wins outright: it already carries its own version segment (e.g. a
+// local fake API at http://127.0.0.1:8080/v4).
+func ResolveBaseURL(apiVersion string) string {
 	if v := os.Getenv("GHEALTH_BASE_URL"); v != "" {
 		return v
 	}
-	return defaultBaseURL
+	if apiVersion == "" {
+		apiVersion = channel.Default
+	}
+	return DefaultHost + "/" + apiVersion
+}
+
+// SetAPIVersion points the client at the given API version.
+func SetAPIVersion(apiVersion string) {
+	BaseURL = ResolveBaseURL(apiVersion)
 }
 
 // sleep is swappable so tests can run the retry loop without real backoff.

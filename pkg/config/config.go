@@ -34,10 +34,11 @@ type Config struct {
 }
 
 type ProfileConfig struct {
-	ProjectID string   `toml:"project_id,omitempty" json:"project_id,omitempty"`
-	Scopes    []string `toml:"scopes,omitempty" json:"scopes,omitempty"`
-	Format    string   `toml:"format,omitempty" json:"format,omitempty"`
-	Timezone  string   `toml:"timezone,omitempty" json:"timezone,omitempty"`
+	ProjectID  string   `toml:"project_id,omitempty" json:"project_id,omitempty"`
+	Scopes     []string `toml:"scopes,omitempty" json:"scopes,omitempty"`
+	Format     string   `toml:"format,omitempty" json:"format,omitempty"`
+	Timezone   string   `toml:"timezone,omitempty" json:"timezone,omitempty"`
+	APIVersion string   `toml:"api_version,omitempty" json:"api_version,omitempty"`
 }
 
 // ProfileOverride is set by the --profile flag. Empty means use default resolution.
@@ -139,6 +140,34 @@ func GetFormat(flagValue string) string {
 	return "json"
 }
 
+// API version sources, reported alongside the resolved version so callers can
+// tell an explicit choice from the default.
+const (
+	APIVersionSourceFlag    = "flag"
+	APIVersionSourceEnv     = "env"
+	APIVersionSourceProfile = "profile"
+	APIVersionSourceDefault = "default"
+)
+
+// ResolveAPIVersion returns the API version (channel) to use and where it
+// came from: --api-version flag, then the GHEALTH_API_VERSION env var, then
+// the active profile's api_version, then "v4". The value is normalized but
+// not validated; callers check it with channel.IsSelectable.
+func ResolveAPIVersion(flagValue string) (version, source string) {
+	if v := strings.TrimSpace(flagValue); v != "" {
+		return strings.ToLower(v), APIVersionSourceFlag
+	}
+	if v := strings.TrimSpace(os.Getenv("GHEALTH_API_VERSION")); v != "" {
+		return strings.ToLower(v), APIVersionSourceEnv
+	}
+	if cfg, err := Load(); err == nil {
+		if v := strings.TrimSpace(cfg.ActiveProfile().APIVersion); v != "" {
+			return strings.ToLower(v), APIVersionSourceProfile
+		}
+	}
+	return "v4", APIVersionSourceDefault
+}
+
 // ClientSecretPath returns the path to the OAuth client secret file.
 func ClientSecretPath() string {
 	return filepath.Join(ConfigDir(), "client_secret.json")
@@ -149,7 +178,11 @@ func CredentialsPath() string {
 	return filepath.Join(ConfigDir(), "credentials.json")
 }
 
-// DiscoveryCachePath returns the path to the cached discovery document.
-func DiscoveryCachePath() string {
-	return filepath.Join(ConfigDir(), "discovery-cache", "health-v4.json")
+// DiscoveryCachePath returns the path to the cached discovery document for an
+// API version, so v4 and v4beta documents never overwrite each other.
+func DiscoveryCachePath(apiVersion string) string {
+	if apiVersion == "" {
+		apiVersion = "v4"
+	}
+	return filepath.Join(ConfigDir(), "discovery-cache", "health-"+apiVersion+".json")
 }

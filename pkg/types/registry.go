@@ -64,6 +64,27 @@ type DataType struct {
 	// SmallPageCap marks types whose list pageSize the API caps at 25
 	// (exercise, sleep). All other types allow up to 10000 per page.
 	SmallPageCap bool `json:"small_page_cap,omitempty"`
+	// Channel is the API release channel the type is published on: "" or
+	// "v4" for GA, "v4beta" for beta-only types. Pre-GA types stay listed
+	// (marked e.g. "[beta]") but their commands refuse to run unless the
+	// active --api-version is at least as permissive. Promoting a type to GA
+	// is a one-line change: clear this field.
+	Channel string `json:"channel,omitempty"`
+	// OpChannels overrides Channel for individual operations, for when the
+	// API gates a single operation (e.g. a beta-only reconcile on a GA type).
+	OpChannels map[string]string `json:"op_channels,omitempty"`
+}
+
+// OperationChannel returns the channel an operation of this type requires:
+// its OpChannels override if any, else the type's Channel, else "v4".
+func (d *DataType) OperationChannel(op string) string {
+	if ch, ok := d.OpChannels[op]; ok && ch != "" {
+		return ch
+	}
+	if d.Channel != "" {
+		return d.Channel
+	}
+	return "v4"
 }
 
 // RollupRangeCapDays returns the API's maximum rollup/dailyRollup range for

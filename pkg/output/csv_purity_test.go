@@ -56,3 +56,18 @@ func TestFwarnDroppedSignals(t *testing.T) {
 		t.Errorf("token not surfaced: %q", out)
 	}
 }
+
+// A pre-GA _api_version must be surfaced on stderr in table/csv mode (rows
+// drop _-prefixed keys); the default v4 channel stays quiet.
+func TestFwarnDroppedSignals_APIVersion(t *testing.T) {
+	var buf bytes.Buffer
+	fwarnDroppedSignals(&buf, json.RawMessage(`{"dataPoints":[],"_api_version":"v4beta"}`))
+	if !strings.Contains(buf.String(), "api_version: v4beta") {
+		t.Errorf("stderr = %q, want api_version: v4beta", buf.String())
+	}
+	buf.Reset()
+	fwarnDroppedSignals(&buf, json.RawMessage(`{"dataPoints":[],"_api_version":"v4"}`))
+	if buf.Len() != 0 {
+		t.Errorf("v4 must stay quiet, got %q", buf.String())
+	}
+}

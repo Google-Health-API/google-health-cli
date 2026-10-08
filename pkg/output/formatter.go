@@ -325,9 +325,15 @@ func fwarnDroppedSignals(w io.Writer, data json.RawMessage) {
 	var obj struct {
 		Hints         []string `json:"_hints"`
 		NextPageToken string   `json:"nextPageToken"`
+		APIVersion    string   `json:"_api_version"`
 	}
 	if json.Unmarshal(data, &obj) != nil {
 		return
+	}
+	// The default GA channel stays quiet; a pre-GA channel is called out so a
+	// table/csv reader knows the rows came from a beta surface.
+	if obj.APIVersion != "" && obj.APIVersion != "v4" {
+		fmt.Fprintf(w, "api_version: %s\n", obj.APIVersion)
 	}
 	for _, h := range obj.Hints {
 		fmt.Fprintf(w, "hint: %s\n", h)

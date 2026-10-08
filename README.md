@@ -1,6 +1,6 @@
 # ghealth
 
-CLI for the [Google Health API v4](https://developers.google.com/health) — built for AI agents and developers.
+CLI for the [Google Health API](https://developers.google.com/health) (v4 by default, v4beta opt-in) — built for AI agents and developers.
 
 - **40 verified data types**: steps, heart rate, exercise, sleep, weight, SpO2, HRV, ECG, blood glucose, nutrition, and more
 - **Agent-first**: simplified JSON output, deterministic exit codes, `--dry-run`, `--raw`
@@ -408,8 +408,26 @@ Errors are always JSON on stderr and may include a `next_steps: []string` array 
 | `GHEALTH_CONFIG_DIR` | Config directory override |
 | `GHEALTH_PROFILE` | Active profile name |
 | `GHEALTH_FORMAT` | Default output format (json/table/csv) |
-| `GHEALTH_BASE_URL` | Override the API base URL |
+| `GHEALTH_API_VERSION` | API channel: `v4` (default) or `v4beta` |
+| `GHEALTH_BASE_URL` | Override the API base URL, including its version segment (e.g. `http://127.0.0.1:8080/v4`). Takes precedence over the API version for requests; its version segment becomes the active channel |
 
+
+## API channels (v4 and v4beta)
+
+ghealth talks to the GA **v4** API by default. New features bake on the **v4beta** channel before GA; opt in per call or per profile:
+
+```bash
+ghealth --api-version v4beta data <type> list --from today   # one call
+export GHEALTH_API_VERSION=v4beta                            # this shell
+ghealth config set api_version v4beta                        # active profile
+```
+
+Resolution order: `--api-version` > `GHEALTH_API_VERSION` > profile `api_version` > `v4`. `v4beta` is a superset of `v4`, so every GA command keeps working on it.
+
+- Beta-only data types and commands are always listed (marked `[beta]` in `--help`, `"channel": "v4beta"` in `ghealth schema types`), but on `v4` they fail with a validation error (exit 3) whose hint says to rerun with `--api-version v4beta`.
+- JSON data responses carry `"_api_version"` so you can tell which channel answered; `ghealth auth status` reports the effective `api_version`, its source, and `base_url`.
+- If `GHEALTH_BASE_URL` is set, its version segment wins; an explicit `--api-version` that disagrees with it is a validation error.
+- Use v4 unless you need a beta-only feature: beta surfaces may change before GA.
 
 ## License
 

@@ -43,6 +43,7 @@ Verify against the live API: `ghealth auth status`, then `ghealth data steps dai
 | Add a contextual hint | `pkg/output/hints.go` |
 | Change CLI flags or help text | `cmd/root.go` (globals), `cmd/data.go` (operations) |
 | OAuth or auth flow | `pkg/auth/auth.go` |
+| Gate a type/command to a pre-GA channel (v4beta) | `Channel`/`OpChannels` on the type in `pkg/types/registry.go`; for non-data commands `markChannel(cmd, "v4beta")` (`cmd/channel.go`). Promote to GA by removing it |
 
 ## Documentation to keep updated
 

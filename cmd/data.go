@@ -46,9 +46,25 @@ func listMaxPageSize(dataType string) int {
 var dataCmd = &cobra.Command{
 	Use:   "data",
 	Short: "Query and manage health data",
-	Long: `Access 40 health data types. Use daily-rollup for totals (steps, distance, floors).
+	Long: fmt.Sprintf(`Access %d health data types. Use daily-rollup for totals (steps, distance, floors).
 Use list for individual readings (heart rate, weight, SpO2, exercise, sleep).
-Run 'ghealth schema types' for the full live list.`,
+Types marked [beta] need --api-version v4beta.
+Run 'ghealth schema types' for the full live list.`, len(types.Registry)),
+	// Unknown types would otherwise fall through to Cobra's help output with
+	// exit 0 (or an "unknown flag" error when flags follow), which an agent
+	// cannot tell apart from success. Accept any args/flags here and return a
+	// structured validation error from RunE instead.
+	FParseErrWhitelist: cobra.FParseErrWhitelist{UnknownFlags: true},
+	Args:               cobra.ArbitraryArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return cmd.Help()
+		}
+		return client.NewValidationError(
+			fmt.Sprintf("unknown data type: %s", args[0]),
+			"Run 'ghealth schema types' to list supported types (types marked [beta] need --api-version v4beta)",
+		)
+	},
 }
 
 func init() {
@@ -74,27 +90,37 @@ func newTypeCommand(dt *types.DataType) *cobra.Command {
 			)
 		},
 	}
+	// Channel gating: the type command carries the type's channel, and each
+	// operation carries its own only when it differs (OpChannels override).
+	markChannel(cmd, dt.Channel)
 	for _, op := range dt.Operations {
+		var opCmd *cobra.Command
 		switch op {
 		case "list":
-			cmd.AddCommand(newListCommand(dt))
+			opCmd = newListCommand(dt)
 		case "get":
-			cmd.AddCommand(newGetCommand(dt))
+			opCmd = newGetCommand(dt)
 		case "create":
-			cmd.AddCommand(newCreateCommand(dt))
+			opCmd = newCreateCommand(dt)
 		case "update":
-			cmd.AddCommand(newUpdateCommand(dt))
+			opCmd = newUpdateCommand(dt)
 		case "delete":
-			cmd.AddCommand(newDeleteCommand(dt))
+			opCmd = newDeleteCommand(dt)
 		case "rollup":
-			cmd.AddCommand(newRollupCommand(dt))
+			opCmd = newRollupCommand(dt)
 		case "daily-rollup":
-			cmd.AddCommand(newDailyRollupCommand(dt))
+			opCmd = newDailyRollupCommand(dt)
 		case "reconcile":
-			cmd.AddCommand(newReconcileCommand(dt))
+			opCmd = newReconcileCommand(dt)
 		case "export-tcx":
-			cmd.AddCommand(newExportTCXCommand(dt))
+			opCmd = newExportTCXCommand(dt)
+		default:
+			continue
 		}
+		if ch := dt.OperationChannel(op); ch != dt.OperationChannel("") {
+			markChannel(opCmd, ch)
+		}
+		cmd.AddCommand(opCmd)
 	}
 	return cmd
 }
@@ -503,7 +529,7 @@ func executeDataList(req *client.Request, opts dataListOpts) error {
 				totalLimit, remainingToken))
 		}
 		simplified = output.InjectHints(simplified, hints)
-		simplified = output.EnsureEnvelope(simplified)
+		simplified = output.WithAPIVersion(output.EnsureEnvelope(simplified), activeAPIVersion)
 	}
 
 	return printOutput(simplified)
@@ -535,7 +561,7 @@ func executeDataGet(req *client.Request, opts dataListOpts) error {
 	if !flagRaw {
 		hints := output.GenerateHints(simplified, opts.dataType, opts.operation, 0, "", "", opts.sleepDetail)
 		simplified = output.InjectHints(simplified, hints)
-		simplified = output.EnsureEnvelope(simplified)
+		simplified = output.WithAPIVersion(output.EnsureEnvelope(simplified), activeAPIVersion)
 	}
 
 	return printOutput(simplified)
@@ -585,7 +611,7 @@ func executeDataRollup(req *client.Request, opts dataListOpts) error {
 	if !flagRaw {
 		hints := output.GenerateHints(body, opts.dataType, opts.operation, 0, opts.from, opts.to, opts.sleepDetail)
 		simplified = output.InjectHints(simplified, hints)
-		simplified = output.EnsureEnvelope(simplified)
+		simplified = output.WithAPIVersion(output.EnsureEnvelope(simplified), activeAPIVersion)
 	}
 
 	return printOutput(simplified)

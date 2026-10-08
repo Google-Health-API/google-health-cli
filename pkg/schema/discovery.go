@@ -27,24 +27,33 @@ import (
 )
 
 const (
-	discoveryURL = "https://health.googleapis.com/$discovery/rest?version=v4"
-	cacheTTL     = 24 * time.Hour
+	discoveryURLFormat = "https://health.googleapis.com/$discovery/rest?version=%s"
+	cacheTTL           = 24 * time.Hour
 )
 
-// FetchDiscovery retrieves the Health API v4 discovery document.
-// It uses a 24-hour file cache at DiscoveryCachePath(); on a cache miss it
-// fetches from the network. The second return value reports the data's origin
-// ("cache" or "live"). It returns an error if no fresh cache exists and the
-// network fetch fails.
-func FetchDiscovery() (json.RawMessage, string, error) {
+// DiscoveryURL returns the discovery document URL for an API version.
+func DiscoveryURL(apiVersion string) string {
+	if apiVersion == "" {
+		apiVersion = "v4"
+	}
+	return fmt.Sprintf(discoveryURLFormat, apiVersion)
+}
+
+// FetchDiscovery retrieves the Health API discovery document for an API
+// version (e.g. "v4", "v4beta"). It uses a 24-hour file cache at
+// DiscoveryCachePath(apiVersion); on a cache miss it fetches from the
+// network. The second return value reports the data's origin ("cache" or
+// "live"). It returns an error if no fresh cache exists and the network fetch
+// fails.
+func FetchDiscovery(apiVersion string) (json.RawMessage, string, error) {
 	// Check cache first.
-	cachePath := config.DiscoveryCachePath()
+	cachePath := config.DiscoveryCachePath(apiVersion)
 	if data, err := readCache(cachePath); err == nil {
 		return data, "cache", nil
 	}
 
 	// Fetch from network.
-	data, err := fetchFromNetwork()
+	data, err := fetchFromNetwork(DiscoveryURL(apiVersion))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch discovery document: %w", err)
 	}
@@ -78,7 +87,7 @@ func writeCache(path string, data json.RawMessage) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-func fetchFromNetwork() (json.RawMessage, error) {
+func fetchFromNetwork(discoveryURL string) (json.RawMessage, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(discoveryURL)
 	if err != nil {

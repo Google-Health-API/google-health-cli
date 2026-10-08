@@ -71,3 +71,28 @@ func EnsureEnvelope(data json.RawMessage) json.RawMessage {
 	out, _ := json.MarshalIndent(obj, "", "  ")
 	return out
 }
+
+// APIVersionKey is the top-level envelope key recording which API channel
+// (e.g. "v4", "v4beta") answered. Like _hints it is CLI metadata, not API
+// payload, so it is underscore-prefixed and dropped from table/csv rows.
+const APIVersionKey = "_api_version"
+
+// WithAPIVersion adds _api_version to an enveloped (object) response so agents
+// can always tell which channel served the data. Non-object payloads are
+// returned unchanged. Row bytes are moved, never re-parsed.
+func WithAPIVersion(data json.RawMessage, apiVersion string) json.RawMessage {
+	if apiVersion == "" {
+		return data
+	}
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(data, &obj) != nil || obj == nil {
+		return data
+	}
+	v, _ := json.Marshal(apiVersion)
+	obj[APIVersionKey] = v
+	out, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return data
+	}
+	return out
+}

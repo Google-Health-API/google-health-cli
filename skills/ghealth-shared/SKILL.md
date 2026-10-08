@@ -123,6 +123,7 @@ ghealth webhooks <subcommand>
 | `--raw` | Bypass response simplification, return original API JSON |
 | `--dry-run` | Print HTTP request without executing |
 | `--profile <name>` | Use named config profile |
+| `--api-version v4\|v4beta` | API channel (default `v4`; also `GHEALTH_API_VERSION` or `ghealth config set api_version`). Commands marked `[beta]` need `v4beta`; on `v4` they exit 3 with a hint. `GHEALTH_BASE_URL`'s version segment wins if set |
 
 `list` also accepts: `--limit N` (max total results, default 500), `--from`, `--to`, `--filter`, `--page-token` (resume from a prior response's `nextPageToken`), `--detail` (sleep).
 

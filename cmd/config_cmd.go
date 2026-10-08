@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"ghealth/pkg/channel"
 	"ghealth/pkg/client"
 	"ghealth/pkg/config"
 	"github.com/BurntSushi/toml"
@@ -32,6 +33,8 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage CLI configuration",
 	Long:  "View and modify ghealth configuration settings and profiles.",
+	// Must work even with an invalid api_version configured, so it can be fixed.
+	Annotations: map[string]string{channelExemptAnnotation: "true"},
 }
 
 var configShowCmd = &cobra.Command{
@@ -42,7 +45,7 @@ var configShowCmd = &cobra.Command{
 
 var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
-	Short: "Set a config value (keys: project_id, format, timezone)",
+	Short: "Set a config value (keys: project_id, format, timezone, api_version)",
 	Args:  cobra.ExactArgs(2),
 	RunE:  runConfigSet,
 }
@@ -133,8 +136,16 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 			}
 		}
 		profile.Timezone = value
+	case "api_version":
+		v := channel.Normalize(value)
+		if v != "" && !channel.IsSelectable(v) {
+			return client.NewValidationError(
+				fmt.Sprintf("invalid api_version: %s", value),
+				"Valid values: "+strings.Join(channel.Selectable, ", ")+", or an empty value for the default (v4)")
+		}
+		profile.APIVersion = v
 	default:
-		return client.NewValidationError(fmt.Sprintf("unknown config key: %s", key), "Valid keys: project_id, format, timezone")
+		return client.NewValidationError(fmt.Sprintf("unknown config key: %s", key), "Valid keys: project_id, format, timezone, api_version")
 	}
 
 	cfg.SetProfile(profileName, profile)
